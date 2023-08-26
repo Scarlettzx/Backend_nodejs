@@ -1,4 +1,6 @@
 const { createPool } = require("mysql");
+const dotenv = require('dotenv');
+dotenv.config({path: "../.env"});
 
 const pool = createPool({
   port: process.env.DB_PORT,
