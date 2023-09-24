@@ -70,9 +70,13 @@ module.exports = {
           message: "Record not Found",
         });
       }
+      const sanitizedResults = results.map((results) => {
+        const { user_password, ...sanitizedResult } = results;
+        return sanitizedResult;
+      });
       return res.status(200).json({
         success: 1,
-        data: results,
+        data: sanitizedResults,
       });
     });
   },
