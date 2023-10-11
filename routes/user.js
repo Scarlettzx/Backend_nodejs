@@ -16,12 +16,15 @@ const {
 const router = require("express").Router();
 const fs = require("fs");
 const { checkToken } = require("../auth/token_validation");
-const { upload, asyncWrapper } = require("../middleware/upload");
+const {
+  imageUserUpload,
+  asyncWrapper,
+} = require("../middleware/upload");
 const { validateMIMEType } = require("validate-image-type");
-// const { getUserByUserEmail } = require("../service/user");
+// ! register 
 router.post(
   "/register",
-  upload.single("avatar"),
+  imageUserUpload.single("avatar"),
   asyncWrapper(async (req, res, next) => {
     try {
       if (!req.file) {

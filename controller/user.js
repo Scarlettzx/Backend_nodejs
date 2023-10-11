@@ -13,6 +13,7 @@ const {
   checkFollower,
   unfollowers,
 } = require("../service/user");
+const fs = require("fs");
 const { genSaltSync, hashSync, compareSync, compare } = require("bcrypt");
 const { sign } = require("jsonwebtoken");
 const myDateModule = require("../util/date");
@@ -60,6 +61,7 @@ module.exports = {
             });
           });
         } else {
+          fs.unlinkSync(req.file.path);
           return res.status(409).json({
             success: 0,
             data: "email is already",
@@ -75,6 +77,7 @@ module.exports = {
     getUserByuserId(id, (err, results) => {
       if (err) {
         console.log(err);
+        return;
       }
       if (!results) {
         return res.status(404).json({
@@ -95,6 +98,7 @@ module.exports = {
     getUserByuserName(name, (err, results) => {
       if (err) {
         console.log(err);
+        return;
       }
       if (!results) {
         return res.status(404).json({
@@ -115,6 +119,7 @@ module.exports = {
         console.log(err);
         return;
       }
+      console.log(results);
       return res.status(200).json({
         success: 1,
         data: results,
@@ -348,7 +353,7 @@ module.exports = {
     // const body = req.body;
     // body.user_id = req.decoded.user_id;
     // console.log(req.decoded.user_id);
-    getAllFollowersuserid(user_id, (err, results) => {
+    getAllFollowersuserid(user_id, async (err, results) => {
       if (err) {
         console.log(err);
         return res.status(500).json({
@@ -365,65 +370,63 @@ module.exports = {
           followers_length: results.length,
         });
       } else {
-        console.log(results);
-        console.log(results[0].person_id); // เอาค่า person_id จากผลลัพธ์แถวแรก
-        console.log(results[0].followers_id); // เอาค่า followers_id จากผลลัพธ์แถวแรก
-        const personIds = results.map((result) => result.person_id);
-        const followerIds = results.map((result) => result.followers_id);
+        try {
+          console.log(results);
+          const personIds = results.map((result) => result.person_id);
+          const followerIds = results.map((result) => result.followers_id);
 
-        // ใช้ map เพื่อสร้าง Promise สำหรับการดึงข้อมูลผู้ใช้สำหรับแต่ละ person_id
-        const personPromises = personIds.map((personId) => {
-          return new Promise((resolve, reject) => {
-            getUserByuserId(personId, (err, userResult) => {
-              if (err) {
-                reject(err);
-              } else {
-                resolve(userResult);
-              }
+          const personPromises = personIds.map((personId) => {
+            return new Promise((resolve, reject) => {
+              getUserByuserId(personId, (err, userResult) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve(userResult);
+                }
+              });
             });
           });
-        });
 
-        // ใช้ map เพื่อสร้าง Promise สำหรับการดึงข้อมูลผู้ใช้สำหรับแต่ละ followers_id
-        const followerPromises = followerIds.map((followerId) => {
-          return new Promise((resolve, reject) => {
-            getUserByuserId(followerId, (err, userResult) => {
-              if (err) {
-                reject(err);
-              } else {
-                resolve(userResult);
-              }
+          const followerPromises = followerIds.map((followerId) => {
+            return new Promise((resolve, reject) => {
+              getUserByuserId(followerId, (err, userResult) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve(userResult);
+                }
+              });
             });
           });
-        });
 
-        // รวมผลลัพธ์ของ Promise ทั้งหมด
-        Promise.all([...personPromises, ...followerPromises])
-          .then((userDetails) => {
-            // รวมผลลัพธ์ของข้อมูลผู้ใช้ทั้งหมดใน Promise.all
-            // รวมข้อมูลผู้ใช้กับข้อมูลใน results ตามลำดับ
-            for (let i = 0; i < results.length; i++) {
-              results[i].person_id = userDetails[0];
-              // ลบ user_password ออกจาก person_id
-              delete results[i].person_id.user_password;
-              // แปลงข้อมูล "followers_id" เป็น JSON object
-              results[i].followers_id = userDetails[1];
-              // ลบ user_password ออกจาก followers_id
-              delete results[i].followers_id.user_password;
-            }
-            return res.status(200).json({
-              followers: results,
-              followers_length: results.length,
-            });
-          })
-          .catch((err) => {
-            console.log(err);
-            return res.status(500).json({
-              success: 0,
-              message: "Database connection error",
-            });
+          const [personDetails, followerDetails] = await Promise.all([
+            Promise.all(personPromises),
+            Promise.all(followerPromises),
+          ]);
+
+          // รวมผลลัพธ์ของข้อมูลผู้ใช้ทั้งหมดใน Promise.all
+          // รวมข้อมูลผู้ใช้กับข้อมูลใน results ตามลำดับ
+          for (let i = 0; i < results.length; i++) {
+            results[i].person_id = personDetails[i];
+            // ลบ user_password ออกจาก person_id
+            delete results[i].person_id.user_password;
+            // แปลงข้อมูล "followers_id" เป็น JSON object
+            results[i].followers_id = followerDetails[i];
+            // ลบ user_password ออกจาก followers_id
+            delete results[i].followers_id.user_password;
+          }
+
+          return res.status(200).json({
+            followers: results,
+            followers_length: results.length,
           });
-        // );
+        } catch (e) {
+          console.log(e);
+          return res.status(500).json({
+            success: 0,
+            message: "Database connection error",
+          });
+        }
       }
     });
   },
@@ -432,7 +435,7 @@ module.exports = {
     const user_id = req.params.user_id;
     // body.user_id = req.decoded.user_id;
     // console.log(req.decoded.user_id);
-    getAllFollowinguserid(user_id, (err, results) => {
+    getAllFollowinguserid(user_id, async (err, results) => {
       console.log(results);
       if (err) {
         console.log(err);
@@ -450,64 +453,63 @@ module.exports = {
           following_length: results.length,
         });
       } else {
-        console.log(results);
-        console.log(results[0].person_id); // เอาค่า person_id จากผลลัพธ์แถวแรก
-        console.log(results[0].followers_id); // เอาค่า followers_id จากผลลัพธ์แถวแรก
-        const personIds = results.map((result) => result.person_id);
-        const followerIds = results.map((result) => result.followers_id);
+        try {
+          console.log(results);
+          const personIds = results.map((result) => result.person_id);
+          const followerIds = results.map((result) => result.followers_id);
 
-        // ใช้ map เพื่อสร้าง Promise สำหรับการดึงข้อมูลผู้ใช้สำหรับแต่ละ person_id
-        const personPromises = personIds.map((personId) => {
-          return new Promise((resolve, reject) => {
-            getUserByuserId(personId, (err, userResult) => {
-              if (err) {
-                reject(err);
-              } else {
-                resolve(userResult);
-              }
+          const personPromises = personIds.map((personId) => {
+            return new Promise((resolve, reject) => {
+              getUserByuserId(personId, (err, userResult) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve(userResult);
+                }
+              });
             });
           });
-        });
 
-        // ใช้ map เพื่อสร้าง Promise สำหรับการดึงข้อมูลผู้ใช้สำหรับแต่ละ followers_id
-        const followerPromises = followerIds.map((followerId) => {
-          return new Promise((resolve, reject) => {
-            getUserByuserId(followerId, (err, userResult) => {
-              if (err) {
-                reject(err);
-              } else {
-                resolve(userResult);
-              }
+          const followerPromises = followerIds.map((followerId) => {
+            return new Promise((resolve, reject) => {
+              getUserByuserId(followerId, (err, userResult) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve(userResult);
+                }
+              });
             });
           });
-        });
 
-        // รวมผลลัพธ์ของ Promise ทั้งหมด
-        Promise.all([...personPromises, ...followerPromises])
-          .then((userDetails) => {
-            // รวมผลลัพธ์ของข้อมูลผู้ใช้ทั้งหมดใน Promise.all
-            // รวมข้อมูลผู้ใช้กับข้อมูลใน results ตามลำดับ
-            for (let i = 0; i < results.length; i++) {
-              results[i].person_id = userDetails[0];
-              // ลบ user_password ออกจาก person_id
-              delete results[i].person_id.user_password;
-              // แปลงข้อมูล "followers_id" เป็น JSON object
-              results[i].followers_id = userDetails[1];
-              // ลบ user_password ออกจาก followers_id
-              delete results[i].followers_id.user_password;
-            }
-            return res.status(200).json({
-              following: results,
-              following_length: results.length,
-            });
-          })
-          .catch((err) => {
-            console.log(err);
-            return res.status(500).json({
-              success: 0,
-              message: "Database connection error",
-            });
+          const [personDetails, followerDetails] = await Promise.all([
+            Promise.all(personPromises),
+            Promise.all(followerPromises),
+          ]);
+
+          // รวมผลลัพธ์ของข้อมูลผู้ใช้ทั้งหมดใน Promise.all
+          // รวมข้อมูลผู้ใช้กับข้อมูลใน results ตามลำดับ
+          for (let i = 0; i < results.length; i++) {
+            results[i].person_id = personDetails[i];
+            // ลบ user_password ออกจาก person_id
+            delete results[i].person_id.user_password;
+            // แปลงข้อมูล "followers_id" เป็น JSON object
+            results[i].followers_id = followerDetails[i];
+            // ลบ user_password ออกจาก followers_id
+            delete results[i].followers_id.user_password;
+          }
+
+          return res.status(200).json({
+            following: results,
+            following_length: results.length,
           });
+        } catch (e) {
+          console.log(e);
+          return res.status(500).json({
+            success: 0,
+            message: "Database connection error",
+          });
+        }
       }
     });
   },

@@ -1,16 +1,24 @@
 const multer = require("multer");
-const { validateMIMEType } = require("validate-image-type");
+// const { validateMIMEType } = require("validate-image-type");
 // const fs = require('fs');
 // ? multer configuration
-const storage = multer.diskStorage({
+const imageUserStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "./uploads");
+    cb(null, "./uploads/images/users");
   },
   filename: (req, file, cb) => {
     cb(null, file.fieldname + `-${Date.now()}-image-${file.originalname}`);
   },
 });
-const fileFilter = (req, file, cb) => {
+const imageBandStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "./uploads/images/bands");
+  },
+  filename: (req, file, cb) => {
+    cb(null, file.fieldname + `-${Date.now()}-image-${file.originalname}`);
+  },
+});
+const imageFileFilter = (req, file, cb) => {
   if (
     file.mimetype == "image/jpeg" ||
     file.mimetype == "image/png" ||
@@ -23,7 +31,9 @@ const fileFilter = (req, file, cb) => {
     console.log(file);
     cb(
       // null,
-      new Error("Invalid file type. Only JPEG and PNG and JPG files are allowed."),
+      new Error(
+        "Invalid file type. Only JPEG and PNG and JPG files are allowed."
+      ),
       false
     );
     // const error = new Error(
@@ -33,16 +43,24 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({
-  storage: storage,
+const imageUserUpload = multer({
+  storage: imageUserStorage,
   limits: {
-    fileSize: 1024 * 1024 * 6,
+    fileSize: 1024 * 1024 * 6, // ! 6MB
   },
-  fileFilter: fileFilter,
+  fileFilter: imageFileFilter,
 });
+const imageBandUpload = multer({
+  storage: imageBandStorage,
+  limits: {
+    fileSize: 1024 * 1024 * 6, // ! 6MB
+  },
+  fileFilter: imageFileFilter,
+});
+
 const asyncWrapper = (fn) => {
   return (req, res, next) => {
     return fn(req, res, next).catch(next);
   };
 };
-module.exports = { upload, asyncWrapper };
+module.exports = { imageUserUpload, imageBandUpload, asyncWrapper };

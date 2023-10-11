@@ -22,12 +22,16 @@ module.exports = {
     );
   },
   getUsers: (callBack) => {
-    pool.query(`SELECT * FROM users`, [], (error, results, fields) => {
-      if (error) {
-        callBack(error);
+    pool.query(
+      `SELECT user_id, user_name ,user_email, user_country, user_position, user_avatar, user_isAdmin, user_createAt, user_updateAt, band_id, band_Type FROM users`,
+      [],
+      (error, results, fields) => {
+        if (error) {
+          callBack(error);
+        }
+        return callBack(null, results);
       }
-      return callBack(null, results);
-    });
+    );
   },
   getUserByuserId: (id, callBack) => {
     pool.query(
@@ -43,7 +47,7 @@ module.exports = {
   },
   getUserByuserName: (name, callBack) => {
     pool.query(
-      `SELECT * FROM users WHERE user_name = ?`,
+      `SELECT  user_id, user_email, user_country, user_position, user_avatar, user_isAdmin, user_createAt, user_updateAt, band_id, band_Type FROM users WHERE user_name = ?`,
       [name],
       (error, results, fields) => {
         if (error) {
@@ -184,7 +188,7 @@ INNER JOIN users ON followers.followers_id = users.user_id`,
   },
   unfollowers: (data, callBack) => {
     pool.query(
-      "DELETE FROM followers WHERE person_id = ? AND followers_id",
+      "DELETE FROM followers WHERE person_id = ? AND followers_id = ?",
       [data.person_id, data.followers_id],
       (error, results, fields) => {
         if (error) {
