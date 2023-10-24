@@ -2,6 +2,8 @@ const {
   createPostbyuser,
   createPostbyband,
   getPosts,
+  editPost,
+  deletePost,
 } = require("../service/posttest");
 const { getUserByuserId } = require("../service/user");
 const { getbandBybandId } = require("../service/band");
@@ -185,6 +187,44 @@ module.exports = {
           posts: [],
         });
       }
+    });
+  },
+  editPost: (req, res) => {
+    const body = req.body;
+    const updateAt = myDateModule.getCurrentDateTimeFormatted();
+    editPost(body, updateAt, (err, editpostbyuserResults) => {
+      if (err) {
+        return res.status(500).json({
+          success: 0,
+          message: "Database connection error",
+        });
+      }
+      if (!editpostbyuserResults) {
+        return res.json({
+          success: 0,
+          message: "Failed to Update post",
+        });
+      }
+      return res.status(200).json({
+        success: 1,
+        data: "updated successfully",
+        result: editpostbyuserResults,
+      });
+    });
+  },
+  deletePost: (req, res) => {
+    const body = req.body;
+    deletePost(body.post_id, (err, results) => {
+      if (err) {
+        return res.status(500).json({
+          success: 0,
+          message: "Database connection error",
+        });
+      }
+      return res.status(200).json({
+        success: 1,
+        data: "delete successfully",
+      });
     });
   },
 };

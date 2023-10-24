@@ -51,4 +51,28 @@ module.exports = {
       }
     );
   },
+  editPost: (body, updateAt, callBack) => {
+    pool.query(
+      `UPDATE poststest SET post_message = ?, post_updateAt = ? WHERE post_id = ? `,
+      [body.post_message, updateAt, body.post_id],
+      (error, results, fields) => {
+        if (error) {
+          callBack(error);
+        }
+        return callBack(null, results);
+      }
+    );
+  },
+  deletePost:(post_id,callBack)=>{
+    pool.query(
+      "DELETE FROM poststest WHERE post_id = ?",
+      [post_id],
+      (error, results, fields) => {
+        if (error) {
+          return callBack(error);
+        }
+        return callBack(null, results[0]);
+      }
+    )
+  }
 };

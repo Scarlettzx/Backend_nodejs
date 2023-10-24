@@ -117,8 +117,7 @@ module.exports = {
       }
       console.log(results);
       return res.status(200).json({
-        success: 1,
-        data: results,
+        users: results,
       });
     });
   },

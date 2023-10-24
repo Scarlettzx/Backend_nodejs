@@ -540,8 +540,7 @@ module.exports = {
                   const Contact = "ยื่นเสนองานให้นักดนตรี";
                   const name = `ผู้ใช้ ${userIdresults.user_name}`;
                   const email = userIdresults.user_email;
-                  const message =
-                    "ต้องการจะติดต่อเสนองานให้คุณถ้าสนใจโปรดตอบกลับอีเมลนี้";
+                  const message = body.message;
 
                   const emailContent = htmlTemplate
                     .replace("${name}", name)
@@ -616,12 +615,13 @@ module.exports = {
                 if (err) {
                   console.log(err);
                   return;
-                } else if(!checkmemResults){
+                } else if (!checkmemResults) {
                   return res.status(404).json({
                     success: 0,
                     message: "The band has disbanded.",
                   });
-                 } else{ getUserByuserId(
+                } else {
+                  getUserByuserId(
                     checkmemResults.user_id,
                     (err, personIdresults) => {
                       if (err) {
@@ -652,8 +652,7 @@ module.exports = {
                         const Contact = "ยื่นเสนองานให้วงดนตรี";
                         const name = `ผู้ใช้ ${req.decoded.user_name}`;
                         const email = req.decoded.user_email;
-                        const message =
-                          "ต้องการจะติดต่อเสนองานให้คุณถ้าสนใจโปรดตอบกลับอีเมลนี้";
+                        const message = body.message;
 
                         const emailContent = htmlTemplate
                           .replace("${name}", name)
