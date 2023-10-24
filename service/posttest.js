@@ -1,6 +1,6 @@
 const pool = require("../config/db");
 module.exports = {
-  creatPostbyuser: (data, createAt, updateAt, callBack) => {
+  createPostbyuser: (data, createAt, updateAt, callBack) => {
     pool.query(
       `INSERT INTO poststest(post_message, post_createAt, post_updateAt, user_id, band_id) VALUES(?,?,?,?,?)`,
       [data.message, createAt, updateAt, data.user_id, null],
@@ -19,7 +19,7 @@ module.exports = {
       }
     );
   },
-  creatPostbyband: (data, createAt, updateAt, callBack) => {
+  createPostbyband: (data, createAt, updateAt, callBack) => {
     pool.query(
       `INSERT INTO poststest(post_message, post_createAt, post_updateAt, user_id, band_id) VALUES(?,?,?,?,?)`,
       [data.message, createAt, updateAt, null, data.band_id],

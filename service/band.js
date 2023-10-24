@@ -180,7 +180,7 @@ module.exports = {
     );
   },
   // ! update data In Band
-  editBand: (data, updateAt, callBack) => {
+  editBandText: (data, updateAt, callBack) => {
     pool.query(
       "UPDATE bands SET band_name = ? ,band_category = ?, band_updateAt = ? WHERE band_id = ?",
       [data.band_name, data.band_category, updateAt, data.band_id],
@@ -201,6 +201,43 @@ module.exports = {
             }
           );
         }
+      }
+    );
+  },
+  editBandAll: (data, updateAt, callBack) => {
+    pool.query(
+      "UPDATE bands SET band_name = ? ,band_category = ?, band_avatar = ?,band_updateAt = ? WHERE band_id = ?",
+      [data.band_name, data.band_category, data.avatar, updateAt, data.band_id],
+      (error, results, fields) => {
+        if (error) {
+          callBack(error);
+        } else {
+          // ดึงข้อมูลผู้ใช้ที่ถูกอัปเดต
+          pool.query(
+            "SELECT * FROM bands WHERE band_id = ?",
+            [data.band_id],
+            (error, bandResults) => {
+              if (error) {
+                callBack(error);
+              } else {
+                callBack(null, bandResults[0]);
+              }
+            }
+          );
+        }
+      }
+    );
+  },
+  // // ! check Founder In Band อาจจะไม่ใช้ถ้าใช้ middleware auth
+  findFounderInBand: (band_id, callBack) => {
+    pool.query(
+      "SELECT * FROM users WHERE band_id = ? AND band_Type = 2",
+      [band_id],
+      (error, results, fields) => {
+        if (error) {
+          callBack(error);
+        }
+        return callBack(null, results[0]);
       }
     );
   },

@@ -9,10 +9,18 @@ const {
   deleteMemberInBand,
   deleteBand,
   checkFounderInBand,
-  editBand,
-  deletebandinFollower,
+  editBandAll,
+  editBandText,
+  // editBand,
+  // deletebandinFollower,
 } = require("../service/band");
 const { getUserByuserId } = require("../service/user");
+const {
+  deleteNotiInvitetojoinbandByband,
+  deleteNotiInvitetojoinbandByuser,
+  deleteNotibydeleteBand,
+  getNotificationfordeletebandbyuser,
+} = require("../service/notification");
 const myDateModule = require("../util/date");
 const fs = require("fs");
 
@@ -217,7 +225,7 @@ module.exports = {
       });
     });
   },
-  invtetoJoinBand: (req, res) => {
+  invtetoJoinBandbyuser: (req, res) => {
     const updateAt = myDateModule.getCurrentDateTimeFormatted();
     const body = req.body;
     // ! check band_Type in TABLE users ของ user_id คนนั้นที่กำลังจะไปเชิญ
@@ -240,8 +248,7 @@ module.exports = {
       if (userIdresults.band_Type != "2") {
         return res.status(404).json({
           success: 0,
-          message:
-            "You do not have the right to invite others to join the band.",
+          message: "The band has disbanded.",
         });
       } else {
         // ! Check the band members (Maximum == 4)
@@ -292,12 +299,126 @@ module.exports = {
                         message: "User not found",
                       });
                     } else {
-                      console.log(results);
-                      results.user_password = undefined;
-                      return res.status(200).json({
-                        success: 1,
-                        data: results,
+                      deleteNotiInvitetojoinbandByuser(
+                        body.user_id,
+                        body.person_id,
+                        (err, deltenotiResults) => {
+                          if (err) {
+                            console.log(err);
+                            return;
+                          } else {
+                            console.log(results);
+                            results.user_password = undefined;
+                            return res.status(200).json({
+                              success: 1,
+                              data: results,
+                            });
+                          }
+                        }
+                      );
+                    }
+                  }
+                );
+              } else if (
+                persoIdresults.band_Type == "1" ||
+                persoIdresults.band_Type == "2"
+              ) {
+                return res.status(404).json({
+                  success: 0,
+                  message: "This user already has a band.",
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+  },
+  invtetoJoinBandbyband: (req, res) => {
+    const updateAt = myDateModule.getCurrentDateTimeFormatted();
+    const body = req.body;
+    // ! check band_Type in TABLE users ของ user_id คนนั้นที่กำลังจะไปเชิญ
+    // ! ว่า band_Type = "2" ไหม ถ้าใช่ให้ทำต่อ ถ้าไม่ใช่ response 404
+    getbandBybandId(body.band_id, (err, bandIdesults) => {
+      // console.log("userIdresults");
+      // console.log(userIdresults);
+      // console.log(typeof userIdresults.band_Type);
+      // console.log(userIdresults.band_Type);
+      if (err) {
+        console.log(err);
+        return;
+      }
+      if (!bandIdesults) {
+        return res.status(404).json({
+          success: 0,
+          message: "Band not found",
+        });
+      } else {
+        // ! Check the band members (Maximum == 4)
+        checkMemberInBand(body.band_id, (err, checkMemberResults) => {
+          console.log(checkMemberResults);
+          console.log(checkMemberResults.length);
+          // console.log((checkMemberResults.band_Type == "1").length);
+          // นับจำนวนคนที่มี band_Type เป็น "1"
+          const countBandType1 = checkMemberResults.reduce((count, member) => {
+            if (member.band_Type === "1") {
+              count += 1;
+            }
+            return count;
+          }, 0);
+          console.log("Number of members with band_Type 1:", countBandType1);
+          if (err) {
+            console.log(err);
+            return;
+          } else if (countBandType1 == 4) {
+            return res.status(404).json({
+              success: 0,
+              message: "The band members are full.",
+            });
+          } else {
+            // ! check person_id him have a band ?
+            getUserByuserId(body.person_id, (err, persoIdresults) => {
+              if (err) {
+                console.log(err);
+                return;
+              } else if (!persoIdresults) {
+                return res.status(404).json({
+                  success: 0,
+                  message: "Record not Found",
+                });
+              }
+              if (persoIdresults.band_Type == "0") {
+                updateMemberBandType(
+                  body.person_id,
+                  body.band_id,
+                  updateAt,
+                  (err, results) => {
+                    if (err) {
+                      console.log(err);
+                      return;
+                    } else if (!results) {
+                      return res.status(404).json({
+                        success: 0,
+                        message: "User not found",
                       });
+                    } else {
+                      deleteNotiInvitetojoinbandByband(
+                        body.band_id,
+                        body.person_id,
+                        (err, deltenotiResults) => {
+                          if (err) {
+                            console.log(err);
+                            return;
+                          } else {
+                            console.log(results);
+                            results.user_password = undefined;
+                            return res.status(200).json({
+                              success: 1,
+                              data: results,
+                            });
+                          }
+                        }
+                      );
                     }
                   }
                 );
@@ -352,69 +473,91 @@ module.exports = {
                 message: "You don't have permission to delete other band",
               });
             } else {
-              // // ! delete bandid in followerstest
-              // deletebandinFollower(body.band_id, (err, results) => {
-              //   console.log(results);
-              //   if (err) {
-              //     console.log(err);
-              //     return;
-              //   } else {
-                  checkMemberInBand(body.band_id, (err, results) => {
-                    if (err) {
-                      console.log(err);
-                      return;
-                    } else if (Array.isArray(results) && results.length > 0) {
-                      // ดึงรายการ person_id และ followers_id ทั้งหมดในอาร์เรย์ results
-                      const userIds = results.map((result) => result.user_id);
-                      // ใช้ map เพื่อดึงข้อมูลผู้ใช้สำหรับแต่ละ person_id
-                      const updateAllusersPromises = userIds.map((userId) => {
-                        return new Promise((resolve, reject) => {
-                          // ! update band_id = null and band_Type = 0 each users
-                          deleteMemberInBand(
-                            userId,
-                            updateAt,
-                            (err, userResult) => {
-                              if (err) {
-                                reject(err);
-                              } else {
-                                resolve(userResult);
-                              }
-                            }
-                          );
-                        });
-                      });
-                      // รวมผลลัพธ์ของข้อมูลผู้ใช้ทั้งหมดใน Promise.all
-                      Promise.all(updateAllusersPromises).then(
-                        (userDetails) => {
-                          // userDetails เป็นอาร์เรย์ของผลลัพธ์ข้อมูลผู้ใช้
-                          // รวมข้อมูลผู้ใช้กับข้อมูลใน results ตามลำดับ
-                          for (let i = 0; i < results.length; i++) {
-                            delete results[i].user_password;
-                          }
-                          deleteBand(body.band_id, (err, results) => {
-                            console.log(results);
+              // ! deleteNotibydeleteBand
+              getNotificationfordeletebandbyuser(
+                body.user_id,
+                (err, resultsgetuseridnoti) => {
+                  console.log(resultsgetuseridnoti);
+                  if (err) {
+                    console.log(err);
+                    return;
+                  } else {
+                    const userIdnotis = resultsgetuseridnoti.map(
+                      (result) => result.user_id
+                    );
+                    userIdnotis.map((userIdnoti) => {
+                      return new Promise((resolve, reject) => {
+                        // ! update band_id = null and band_Type = 0 each users
+                        deleteNotibydeleteBand(
+                          userIdnoti,
+                          (err, userResult) => {
                             if (err) {
-                              console.log(err);
-                              return;
+                              reject(err);
                             } else {
-                              return res.status(200).json({
-                                success: 1,
-                                data: "delete successfully",
-                              });
+                              resolve(userResult);
                             }
-                          });
-                        }
-                      );
-                    } else {
-                      // ! don't have data IN DB
-                      return res.status(200).json({
-                        success: 1,
-                        data: [],
+                          }
+                        );
                       });
-                    }
-                  });
-                // }
-              // });
+                    });
+
+                    checkMemberInBand(body.band_id, (err, results) => {
+                      if (err) {
+                        console.log(err);
+                        return;
+                      } else if (Array.isArray(results) && results.length > 0) {
+                        // ดึงรายการ person_id และ followers_id ทั้งหมดในอาร์เรย์ results
+                        const userIds = results.map((result) => result.user_id);
+                        // ใช้ map เพื่อดึงข้อมูลผู้ใช้สำหรับแต่ละ person_id
+                        const updateAllusersPromises = userIds.map((userId) => {
+                          return new Promise((resolve, reject) => {
+                            // ! update band_id = null and band_Type = 0 each users
+                            deleteMemberInBand(
+                              userId,
+                              updateAt,
+                              (err, userResult) => {
+                                if (err) {
+                                  reject(err);
+                                } else {
+                                  resolve(userResult);
+                                }
+                              }
+                            );
+                          });
+                        });
+                        // รวมผลลัพธ์ของข้อมูลผู้ใช้ทั้งหมดใน Promise.all
+                        Promise.all(updateAllusersPromises).then(
+                          (userDetails) => {
+                            // userDetails เป็นอาร์เรย์ของผลลัพธ์ข้อมูลผู้ใช้
+                            // รวมข้อมูลผู้ใช้กับข้อมูลใน results ตามลำดับ
+                            for (let i = 0; i < results.length; i++) {
+                              delete results[i].user_password;
+                            }
+                            deleteBand(body.band_id, (err, results) => {
+                              console.log(results);
+                              if (err) {
+                                console.log(err);
+                                return;
+                              } else {
+                                return res.status(200).json({
+                                  success: 1,
+                                  data: "delete successfully",
+                                });
+                              }
+                            });
+                          }
+                        );
+                      } else {
+                        // ! don't have data IN DB
+                        return res.status(200).json({
+                          success: 1,
+                          data: [],
+                        });
+                      }
+                    });
+                  }
+                }
+              );
             }
           } catch (e) {
             console.log(e);
@@ -426,6 +569,7 @@ module.exports = {
   editBandByFounder: (req, res) => {
     const updateAt = myDateModule.getCurrentDateTimeFormatted();
     const body = req.body;
+    body.user_id = req.decoded.user_id;
     getbandBybandId(body.band_id, (err, results) => {
       if (err) {
         console.log(err);
@@ -455,18 +599,46 @@ module.exports = {
                 message: "You don't have permission to edit other band",
               });
             } else {
-              editBand(body, updateAt, (err, results) => {
-                if (err) {
-                  console.log(err);
-                  return;
-                } else {
-                  console.log(results);
+              if (req.file) {
+                body.avatar = req.file.filename;
+                editBandAll(body, updateAt, (err, results) => {
+                  if (err) {
+                    fs.unlinkSync(req.file.path);
+                    console.log(err);
+                    return false;
+                  }
+                  if (!results) {
+                    fs.unlinkSync(req.file.path);
+                    return res.json({
+                      success: 0,
+                      message: "Failed to Update user",
+                    });
+                  }
                   return res.status(200).json({
                     success: 1,
-                    data: results,
+                    data: "updated successfully",
+                    result: results,
                   });
-                }
-              });
+                });
+              } else {
+                editBandText(body, updateAt, (err, results) => {
+                  if (err) {
+                    console.log(err);
+                    return false;
+                  }
+                  if (!results) {
+                    return res.json({
+                      success: 0,
+                      message: "Failed to Update user",
+                    });
+                  }
+                  return res.status(200).json({
+                    success: 1,
+                    data: "updated successfully",
+                    result: results,
+                  });
+                });
+              }
             }
           } catch (error) {
             console.log(error);
@@ -478,6 +650,7 @@ module.exports = {
   leaveBandByMemberuserid: (req, res) => {
     const updateAt = myDateModule.getCurrentDateTimeFormatted();
     const body = req.body;
+    body.user_id = req.decoded.user_id;
     getbandBybandId(body.band_id, (err, results) => {
       if (err) {
         console.log(err);
@@ -575,6 +748,7 @@ module.exports = {
   leaveBandByFounder: (req, res) => {
     const updateAt = myDateModule.getCurrentDateTimeFormatted();
     const body = req.body;
+    body.user_id = req.decoded.user_id;
     if (body.user_id == body.person_id) {
       return res.status(404).json({
         success: 0,

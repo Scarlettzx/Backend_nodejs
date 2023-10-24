@@ -3,7 +3,8 @@ const {
   getAllBands,
   getbandBybandName,
   getbandBybandId,
-  invtetoJoinBand,
+  invtetoJoinBandbyuser,
+  invtetoJoinBandbyband,
   deleteBand,
   editBandByFounder,
   leaveBandByMemberuserid,
@@ -60,11 +61,44 @@ router.post(
   checkToken,
   createBand
 );
-router.post("/invite", invtetoJoinBand);
+router.post("/invitebyuser", checkToken, invtetoJoinBandbyuser);
+router.post("/invitebyband", checkToken, invtetoJoinBandbyband);
 router.delete("/delete", checkToken, deleteBand);
 // router.delete("/deleteband", deleteBandId);
-router.patch("/editband", editBandByFounder);
-router.post("/leavebandbymember", leaveBandByMemberuserid);
-router.post("/leavebandbyfounder", leaveBandByFounder);
+router.patch(
+  "/editband",
+  checkToken,
+  imageBandUpload.single("avatar"),
+  asyncWrapper(async (req, res, next) => {
+    try {
+      if (!req.file) {
+        next();
+      } else {
+        const validationResult = await validateMIMEType(req.file.path, {
+          originalFilename: req.file.originalname,
+          allowMimeTypes: [
+            "image/jpeg",
+            "image/png",
+            "image/svg+xml",
+            "image/jpg",
+          ],
+        });
+
+        if (!validationResult.ok) {
+          fs.unlinkSync(req.file.path);
+          return res.status(400).json({ message: "Invalid image file type" });
+        }
+        next();
+        console.log("upload is checked valid");
+      }
+    } catch (error) {
+      fs.unlinkSync(req.file.path);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  }),
+  editBandByFounder
+);
+router.delete("/leavebandbymember", checkToken, leaveBandByMemberuserid);
+router.delete("/leavebandbyfounder", checkToken, leaveBandByFounder);
 router.get("/checkmemberinband/:bandid", checkMemberInBand);
 module.exports = router;

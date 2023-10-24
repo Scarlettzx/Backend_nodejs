@@ -1,6 +1,6 @@
 const {
-  creatPostbyuser,
-  creatPostbyband,
+  createPostbyuser,
+  createPostbyband,
   getPosts,
 } = require("../service/posttest");
 const { getUserByuserId } = require("../service/user");
@@ -8,13 +8,13 @@ const { getbandBybandId } = require("../service/band");
 const myDateModule = require("../util/date");
 module.exports = {
   // ! creatPostbyuser
-  creatPostbyuser: (req, res) => {
+  createPostbyuser: (req, res) => {
     const body = req.body;
     const createAt = myDateModule.getCurrentDateTimeFormatted();
     const updateAt = myDateModule.getCurrentDateTimeFormatted();
     req.body.user_id = req.decoded.user_id;
     console.log(req.decoded.user_id);
-    creatPostbyuser(body, createAt, updateAt, (err, postResults) => {
+    createPostbyuser(body, createAt, updateAt, (err, postResults) => {
       if (err) {
         console.log(err);
         return res.status(500).json({
@@ -54,7 +54,7 @@ module.exports = {
   },
 
   // ! creatPostbyband
-  creatPostbyband: (req, res) => {
+  createPostbyband: (req, res) => {
     const body = req.body;
     const createAt = myDateModule.getCurrentDateTimeFormatted();
     const updateAt = myDateModule.getCurrentDateTimeFormatted();
@@ -73,7 +73,7 @@ module.exports = {
         });
       }
 
-      creatPostbyband(body, createAt, updateAt, (err, postResults) => {
+      createPostbyband(body, createAt, updateAt, (err, postResults) => {
         if (err) {
           console.log(err);
           return res.status(500).json({
