@@ -35,6 +35,12 @@ module.exports = {
           message: "Record not Found",
         });
       } else {
+        if (persoIdresults.band_Type === "0") {
+          return res.status(404).json({
+            success: 0,
+            message: "You dont have permission to invited",
+          });
+        }
         checkMemberInBand(persoIdresults.band_id, (err, checkMemberResults) => {
           console.log("checkMemberResults.length");
           console.log(checkMemberResults.length);
@@ -372,28 +378,6 @@ module.exports = {
   getNotifications: (req, res) => {
     const body = req.body;
     body.person_id = req.decoded.user_id;
-    // const findFounderInBandAsync = (band_id) => {
-    //   return new Promise((resolve, reject) => {
-    //     findFounderInBand(band_id, (err, userDetails) => {
-    //       if (err) {
-    //         reject(err);
-    //       } else {
-    //         resolve(userDetails);
-    //       }
-    //     });
-    //   });
-    // };
-    // const getUserByuserIdAsync = (id) => {
-    //   return new Promise((resolve, reject) => {
-    //     getUserByuserId(id, (err, userDetails) => {
-    //       if (err) {
-    //         reject(err);
-    //       } else {
-    //         resolve(userDetails);
-    //       }
-    //     });
-    //   });
-    // };
     getNotificationbyuserid(body.person_id, (err, results) => {
       console.log("results");
       console.log(results);
@@ -433,6 +417,7 @@ module.exports = {
         const transformedResultsPromises = results.map(async (result) => {
           const transformedResult = {
             noti_id: result.noti_id,
+            noti_message: result.noti_message,
             noti_type: result.noti_type,
             noti_createAt: result.noti_createAt,
           };

@@ -6,6 +6,7 @@ const {
   getUserByuserName,
   updateUsers,
   login,
+  ChangePassword,
   // getAllFollowers,
   // addFollowers,
   // getAllFollowersuserid,
@@ -17,6 +18,7 @@ const router = require("express").Router();
 const fs = require("fs");
 const { checkToken } = require("../auth/token_validation");
 const { imageUserUpload, asyncWrapper } = require("../middleware/upload");
+const { createOtp } = require("../middleware/otp");
 const { validateMIMEType } = require("validate-image-type");
 // ! register
 router.post(
@@ -54,10 +56,12 @@ router.post(
       return res.status(500).json({ message: "Internal server error" });
     }
   }),
+  // createOtp,
   createUser
 );
 // ! REGISTER AND LOGIN
 router.get("/getallusers", getUsers);
+router.patch("/changepassword", checkToken, ChangePassword);
 router.get("/getbyuserid/:id", getUserByuserId);
 // router.get("/getsearchuser/:email", getUserByUserEmail);
 router.get("/getsearchuser/:name", getUserByuserName);

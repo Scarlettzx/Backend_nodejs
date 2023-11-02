@@ -7,8 +7,11 @@ const {
   getUserByUserEmail,
   getUserByuserName,
   updateUserAll,
+  ChangePassword,
 } = require("../service/user");
 const fs = require("fs");
+const { getbandBybandId } = require("../service/band");
+const { Checkotp, Deleteotp } = require("../service/otp");
 const { genSaltSync, hashSync, compareSync, compare } = require("bcrypt");
 const { sign } = require("jsonwebtoken");
 const myDateModule = require("../util/date");
@@ -21,8 +24,9 @@ module.exports = {
     const createAt = myDateModule.getCurrentDateTimeFormatted();
     const updateAt = myDateModule.getCurrentDateTimeFormatted();
     getUserByUserEmail(body.email, (err, results) => {
+      console.log("body");
       console.log(body);
-      console.log(req.file);
+      // console.log(req.file);
       try {
         // ! results == false not have email in DB
         if (!results) {
@@ -34,28 +38,76 @@ module.exports = {
               success: 0,
               message: "Image upload is required",
             });
-          }
-          body.avatar = req.file.filename;
-          console.log(body);
-          // ! generate salt by using brycpt  combine with password user
-          const salt = genSaltSync(10);
-          body.password = hashSync(body.password, salt);
-          // ! passing body from user and parameters createAt, updateAt into create goto service {user}
-          create(body, createAt, updateAt, (err, results) => {
-            if (err) {
-              console.log(err);
-              fs.unlinkSync(req.file.path);
-              return res.status(500).json({
+          } else {
+            if (
+              body.verificationCode.length === 0 ||
+              body.verificationCode == ""
+            ) {
+              return res.status(400).json({
                 success: 0,
-                message: "Database connection error",
+                message: "Missing verification code",
               });
+            } else {
+              Checkotp(
+                body.email,
+                body.verificationCode,
+                (err, Checkotpresults) => {
+                  if (err) {
+                    console.log(err);
+                    fs.unlinkSync(req.file.path);
+                    return res.status(500).json({
+                      success: 0,
+                      message: "Database connection error",
+                    });
+                  }
+                  if (!Checkotpresults) {
+                    fs.unlinkSync(req.file.path);
+                    return res.status(400).json({
+                      success: 0,
+                      message: "Missing verification code",
+                    });
+                  } else {
+                    Deleteotp(
+                      body.email,
+                      body.verificationCode,
+                      (err, Deleteotpresult) => {
+                        if (err) {
+                          console.log(err);
+                          fs.unlinkSync(req.file.path);
+                          return res.status(500).json({
+                            success: 0,
+                            message: "Database connection error",
+                          });
+                        }
+
+                        body.avatar = req.file.filename;
+                        console.log(body);
+                        // ! generate salt by using brycpt  combine with password user
+                        const salt = genSaltSync(10);
+                        body.password = hashSync(body.password, salt);
+                        // ! passing body from user and parameters createAt, updateAt into create goto service {user}
+                        create(body, createAt, updateAt, (err, results) => {
+                          if (err) {
+                            console.log(err);
+                            fs.unlinkSync(req.file.path);
+                            return res.status(500).json({
+                              success: 0,
+                              message: "Database connection error",
+                            });
+                          }
+                          console.log(results);
+                          return res.status(200).json({
+                            success: 1,
+                            data: body,
+                          });
+                        });
+                      }
+                    );
+                  }
+                }
+              );
             }
-            console.log(results);
-            return res.status(200).json({
-              success: 1,
-              data: body,
-            });
-          });
+          }
         } else {
           fs.unlinkSync(req.file.path);
           return res.status(409).json({
@@ -110,14 +162,45 @@ module.exports = {
     });
   },
   getUsers: (req, res) => {
-    getUsers((err, results) => {
+    getUsers(async (err, results) => {
       if (err) {
         console.log(err);
         return;
       }
+      const getbandBybandIdAsync = (id) => {
+        return new Promise((resolve, reject) => {
+          getbandBybandId(id, (err, bandDetails) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(bandDetails);
+            }
+          });
+        });
+      };
+      const getUserPromises = results.map(async (result) => {
+        const userResult = {
+          user_id: result.user_id,
+          user_name: result.user_name,
+          user_email: result.user_email,
+          user_country: result.user_country,
+          user_position: result.user_position,
+          user_avatar: result.user_avatar,
+          user_isAdmin: result.user_isAdmin,
+          user_createAt: result.user_createAt,
+          user_updateAt: result.user_updateAt,
+        };
+        if (result.band_id !== null) {
+          const bandName = await getbandBybandIdAsync(result.band_id);
+          userResult.band_name = bandName.band_name;
+        }
+        userResult.band_Type = result.band_Type;
+        return userResult;
+      });
+      const userDetails = await Promise.all(getUserPromises);
       console.log(results);
       return res.status(200).json({
-        users: results,
+        users: userDetails,
       });
     });
   },
@@ -206,7 +289,7 @@ module.exports = {
         if (result) {
           results.user_password = undefined;
           const jsontoken = sign({ result: results }, "qwe1234", {
-            expiresIn: "1h",
+            expiresIn: "3h",
           });
           return res.status(200).json({
             success: 1,
@@ -223,6 +306,64 @@ module.exports = {
         console.log(e);
       }
     });
+  },
+  ChangePassword: (req, res) => {
+    const body = req.body;
+    body.user_id = req.decoded.user_id;
+    const updateAt = myDateModule.getCurrentDateTimeFormatted();
+    console.log(body.oldpassword)
+    console.log(body.newpassword)
+    if (body.oldpassword == body.newpassword) {
+      return res.status(409).json({
+        success: 0,
+        data: "Old password and new password must not be duplicated.",
+      });
+    } else {
+      getUserByuserId(body.user_id, (err, results) => {
+        try {
+          if (err) {
+            return res.status(500).json({
+              success: 0,
+              message: "Database connection error",
+            });
+          } else {
+            const resultcheckoldpassword = compareSync(
+              body.oldpassword,
+              results.user_password
+            );
+            const resultchecknewpassword = compareSync(
+              body.newpassword,
+              results.user_password
+            );
+            if (resultcheckoldpassword && !resultchecknewpassword) {
+              const salt = genSaltSync(10);
+              body.newpassword = hashSync(body.newpassword, salt);
+              ChangePassword(body, updateAt, (err, results) => {
+                if (err) {
+                  return res.status(500).json({
+                    success: 0,
+                    message: "Database connection error",
+                  });
+                } else {
+                  return res.status(200).json({
+                    success: 1,
+                    data: "change password successfully",
+                    results: results,
+                  });
+                }
+              });
+            } else {
+              return res.status(401).json({
+                success: 0,
+                data: "Please Check old password",
+              });
+            }
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      });
+    }
   },
   // // ! Followers
   // getAllFollowers: (req, res) => {

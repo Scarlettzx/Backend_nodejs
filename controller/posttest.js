@@ -4,6 +4,7 @@ const {
   getPosts,
   editPost,
   deletePost,
+  countComment,
 } = require("../service/posttest");
 const { getUserByuserId } = require("../service/user");
 const { getbandBybandId } = require("../service/band");
@@ -145,6 +146,17 @@ module.exports = {
             });
           });
         };
+        const getcountCommentAsync = (id) => {
+          return new Promise((resolve, reject) => {
+            countComment(id, (err, countcommentResult) => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve(countcommentResult);
+              }
+            });
+          });
+        };
         // ใช้ Promises ในการดึงข้อมูลและแปลงผลลัพธ์
         const transformedResultsPromises = results.map(async (result) => {
           const transformedResult = {
@@ -153,8 +165,12 @@ module.exports = {
             post_like: result.post_like,
             post_createAt: result.post_createAt,
             post_updateAt: result.post_updateAt,
+            post_isHide: result.post_isHide,
           };
-
+          if (result.post_id != null) {
+            const countcomment = await getcountCommentAsync(result.post_id);
+            transformedResult.count_comment = countcomment;
+          }
           if (result.user_id !== null) {
             const userDetails = await getUserByuserIdAsync(result.user_id);
             // คัดลอกคุณสมบัติทั้งหมดจาก userDetails แต่ไม่รวม user_password
@@ -165,6 +181,7 @@ module.exports = {
             const bandDetails = await getbandBybandIdAsync(result.band_id);
             transformedResult.band_details = bandDetails;
           }
+
           return transformedResult;
         });
         // รวมผลลัพธ์ของ Promises ทั้งหมด

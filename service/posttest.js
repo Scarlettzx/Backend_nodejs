@@ -63,7 +63,7 @@ module.exports = {
       }
     );
   },
-  deletePost:(post_id,callBack)=>{
+  deletePost: (post_id, callBack) => {
     pool.query(
       "DELETE FROM poststest WHERE post_id = ?",
       [post_id],
@@ -73,6 +73,42 @@ module.exports = {
         }
         return callBack(null, results[0]);
       }
-    )
-  }
+    );
+  },
+  countComment: (post_id, callBack) => {
+    pool.query(
+      "SELECT COUNT(*) FROM commentsposts WHERE post_id = ?",
+      [post_id],
+      (error, results, fields) => {
+        if (error) {
+          return callBack(error);
+        }
+        return callBack(null, results[0]["COUNT(*)"]);
+      }
+    );
+  },
+  getPostbypostid: (post_id, callBack) => {
+    pool.query(
+      "SELECT * FROM poststest WHERE post_id = ?",
+      [post_id],
+      (error, results, fields) => {
+        if (error) {
+          return callBack(error);
+        }
+        return callBack(null, results[0]);
+      }
+    );
+  },
+  hidepost: (post_id, callBack) => {
+    pool.query(
+      "UPDATE poststest SET post_isHide = ? WHERE post_id = ?",
+      ["true", post_id],
+      (error, results, fields) => {
+        if (error) {
+          callBack(error);
+        }
+        return callBack(null, results);
+      }
+    );
+  },
 };

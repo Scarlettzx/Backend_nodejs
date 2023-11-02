@@ -26,8 +26,8 @@ module.exports = {
   },
   createNotiInvitetojoinbandByuser: (data, createAt, callBack) => {
     pool.query(
-      "INSERT INTO notifications (user_id, band_id, person_id, banded_id, noti_type,noti_createAt) VALUES(?,?,?,?,?,?)",
-      [data.user_id, null, data.person_id, null, 2, createAt],
+      "INSERT INTO notifications (user_id, band_id, person_id, banded_id, noti_message ,noti_type,noti_createAt) VALUES(?,?,?,?,?,?,?)",
+      [data.user_id, null, data.person_id, null, data.message, 2, createAt],
       (error, results, fields) => {
         if (error) {
           callBack(error);
@@ -36,6 +36,7 @@ module.exports = {
             noti_id: results.insertId,
             user_id: data.user_id,
             person_id: data.person_id,
+            noti_message: data.message,
             noti_type: 2,
             noti_createAt: createAt,
           };
@@ -46,8 +47,8 @@ module.exports = {
   },
   createNotiInvitetojoinbandByband: (data, createAt, callBack) => {
     pool.query(
-      "INSERT INTO notifications (user_id, band_id, person_id, banded_id, noti_type,noti_createAt) VALUES(?,?,?,?,?,?)",
-      [null, data.band_id, data.person_id, null, 2, createAt],
+      "INSERT INTO notifications (user_id, band_id, person_id, banded_id, noti_message ,noti_type,noti_createAt) VALUES(?,?,?,?,?,?,?)",
+      [null, data.band_id, data.person_id, null, data.message, 2, createAt],
       (error, results, fields) => {
         if (error) {
           callBack(error);
@@ -56,6 +57,7 @@ module.exports = {
             noti_id: results.insertId,
             band_id: data.band_id,
             person_id: data.person_id,
+            noti_message: data.message,
             noti_type: 2,
             noti_createAt: createAt,
           };
@@ -64,12 +66,12 @@ module.exports = {
       }
     );
   },
-  createNotiEmailByband: (data, createAt, callBack) => {
-    pool.query("INSERT INTO notifications () VALUES()", []);
-  },
-  createNotiEmailByuser: (data, createAt, callBack) => {
-    pool.query("INSERT INTO notifications () VALUES()", []);
-  },
+  // createNotiEmailByband: (data, createAt, callBack) => {
+  //   pool.query("INSERT INTO notifications () VALUES()", []);
+  // },
+  // createNotiEmailByuser: (data, createAt, callBack) => {
+  //   pool.query("INSERT INTO notifications () VALUES()", []);
+  // },
   //   ! deleteNotiInvitetojoinbandByband
   deleteNotiInvitetojoinbandByband: (band_id, person_id, callBack) => {
     pool.query(
@@ -171,8 +173,8 @@ module.exports = {
   },
   sendOfferuser: (data, createAt, callBack) => {
     pool.query(
-      "INSERT INTO notifications (user_id, band_id, person_id, banded_id, noti_type,noti_createAt) VALUES(?,?,?,?,?,?)",
-      [data.user_id, null, data.person_id, null, 1, createAt],
+      "INSERT INTO notifications (user_id, band_id, person_id, banded_id, noti_message ,noti_type,noti_createAt) VALUES(?,?,?,?,?,?,?)",
+      [data.user_id, null, data.person_id, null, data.message, 1, createAt],
       (error, results, fields) => {
         if (error) {
           callBack(error);
@@ -181,6 +183,7 @@ module.exports = {
             noti_id: results.insertId,
             user_id: data.user_id,
             person_id: data.person_id,
+            noti_message: data.message,
             noti_type: 1,
             noti_createAt: createAt,
           };
@@ -191,8 +194,8 @@ module.exports = {
   },
   sendOfferband: (data, createAt, callBack) => {
     pool.query(
-      "INSERT INTO notifications (user_id, band_id, person_id, banded_id, noti_type,noti_createAt) VALUES(?,?,?,?,?,?)",
-      [data.user_id, null, null, data.band_id, 1, createAt],
+      "INSERT INTO notifications (user_id, band_id, person_id, banded_id, noti_message,noti_type,noti_createAt) VALUES(?,?,?,?,?,?,?)",
+      [data.user_id, null, null, data.band_id, data.message, 1, createAt],
       (error, results, fields) => {
         if (error) {
           callBack(error);
@@ -201,6 +204,7 @@ module.exports = {
             noti_id: results.insertId,
             user_id: data.user_id,
             band_id: data.band_id,
+            noti_message: data.message,
             noti_type: 1,
             noti_createAt: createAt,
           };

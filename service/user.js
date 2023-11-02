@@ -21,6 +21,28 @@ module.exports = {
       }
     );
   },
+  createadmin: (data, createAt, updateAt, callBack) => {
+    pool.query(
+      `INSERT INTO users(user_name, user_email, user_password,user_country,user_position, user_avatar , user_isAdmin ,user_createAt,user_updateAt) VALUES(?,?,?,?,?,?,?,?,?)`,
+      [
+        data.username,
+        data.email,
+        data.password,
+        data.country,
+        data.position,
+        data.avatar,
+        data.isadmin,
+        createAt,
+        updateAt,
+      ],
+      (error, results, fields) => {
+        if (error) {
+          callBack(error);
+        }
+        return callBack(null, results);
+      }
+    );
+  },
   getUsers: (callBack) => {
     pool.query(
       `SELECT user_id, user_name ,user_email, user_country, user_position, user_avatar, user_isAdmin, user_createAt, user_updateAt, band_id, band_Type FROM users`,
@@ -61,6 +83,18 @@ module.exports = {
     pool.query(
       `UPDATE users SET user_name = ?, user_country = ?, user_position = ?, user_updateAt = ? WHERE user_id = ? `,
       [data.username, data.country, data.position, updateAt, data.user_id],
+      (error, results, fields) => {
+        if (error) {
+          callBack(error);
+        }
+        return callBack(null, results);
+      }
+    );
+  },
+  ChangePassword: (data, updateAt, callBack) => {
+    pool.query(
+      `UPDATE users SET user_password = ?, user_updateAt = ? WHERE user_id = ? `,
+      [data.newpassword, updateAt, data.user_id],
       (error, results, fields) => {
         if (error) {
           callBack(error);
