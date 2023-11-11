@@ -212,46 +212,59 @@ module.exports = {
     body.user_id = req.decoded.user_id;
     const updateAt = myDateModule.getCurrentDateTimeFormatted();
     // body.password = hashSync(body.password, salt);
-    if (req.file) {
-      body.avatar = req.file.filename;
-      updateUserAll(body, updateAt, (err, results) => {
-        if (err) {
-          fs.unlinkSync(req.file.path);
-          console.log(err);
-          return false;
-        }
-        if (!results) {
-          fs.unlinkSync(req.file.path);
-          return res.json({
-            success: 0,
-            message: "Failed to Update user",
+    getUserByuserId(body.user_id, (err, results) => {
+      if (err) {
+        console.log(err);
+        return false;
+      }
+      if (body.position == "none" && results.band_id != null) {
+        return res.status(400).json({
+          success: 0,
+          message: "Please Checkband",
+        });
+      } else {
+        if (req.file) {
+          body.avatar = req.file.filename;
+          updateUserAll(body, updateAt, (err, results) => {
+            if (err) {
+              fs.unlinkSync(req.file.path);
+              console.log(err);
+              return false;
+            }
+            if (!results) {
+              fs.unlinkSync(req.file.path);
+              return res.json({
+                success: 0,
+                message: "Failed to Update user",
+              });
+            }
+            return res.status(200).json({
+              success: 1,
+              data: "updated successfully",
+              result: results,
+            });
+          });
+        } else {
+          updateUsertext(body, updateAt, (err, results) => {
+            if (err) {
+              console.log(err);
+              return false;
+            }
+            if (!results) {
+              return res.json({
+                success: 0,
+                message: "Failed to Update user",
+              });
+            }
+            return res.status(200).json({
+              success: 1,
+              data: "updated successfully",
+              result: results,
+            });
           });
         }
-        return res.status(200).json({
-          success: 1,
-          data: "updated successfully",
-          result: results,
-        });
-      });
-    } else {
-      updateUsertext(body, updateAt, (err, results) => {
-        if (err) {
-          console.log(err);
-          return false;
-        }
-        if (!results) {
-          return res.json({
-            success: 0,
-            message: "Failed to Update user",
-          });
-        }
-        return res.status(200).json({
-          success: 1,
-          data: "updated successfully",
-          result: results,
-        });
-      });
-    }
+      }
+    });
   },
   deleteUser: (req, res) => {
     const data = req.body;
@@ -311,8 +324,8 @@ module.exports = {
     const body = req.body;
     body.user_id = req.decoded.user_id;
     const updateAt = myDateModule.getCurrentDateTimeFormatted();
-    console.log(body.oldpassword)
-    console.log(body.newpassword)
+    console.log(body.oldpassword);
+    console.log(body.newpassword);
     if (body.oldpassword == body.newpassword) {
       return res.status(409).json({
         success: 0,
